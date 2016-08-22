@@ -95,7 +95,7 @@ void loop () {
 }
 
 void sendToTwitter () {
-  Serial.println("Sending tweet...");
+  Serial.println(F("Sending tweet..."));
   byte sd = stash.create();
 
   //const char tweet[] = "@h2ohw works!";
@@ -105,6 +105,9 @@ void sendToTwitter () {
   stash.print(level);
   stash.print(read_sensor());
   stash.print("%");
+  if(notif(read_sensor())){
+    stash.print(warning);
+  }
   stash.println();
   stash.save();
   int stash_size = stash.size();
