@@ -85,6 +85,7 @@ void loop () {
     Serial.print(50-i);
     Serial.println(")");
     delay(6000);
+    read_sensor();
   }
   
   update_level_meter(read_sensor());
