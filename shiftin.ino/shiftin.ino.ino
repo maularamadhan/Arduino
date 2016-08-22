@@ -39,10 +39,10 @@
 */
 #define BYTES_VAL_T unsigned int
 
-int ploadPin        = 5;  // Connects to Parallel load pin the 165
-int clockEnablePin  = 6;  // Connects to Clock Enable pin the 165
-int dataPin         = 8; // Connects to the Q7 pin the 165
-int clockPin        = 7; // Connects to the Clock pin the 165
+int ploadPin        = 7;  // Connects to Parallel load pin the 165
+int clockEnablePin  = 8;  // Connects to Clock Enable pin the 165
+int dataPin         = 10; // Connects to the Q7 pin the 165
+int clockPin        = 9; // Connects to the Clock pin the 165
 
 BYTES_VAL_T pinValues;
 BYTES_VAL_T oldPinValues;

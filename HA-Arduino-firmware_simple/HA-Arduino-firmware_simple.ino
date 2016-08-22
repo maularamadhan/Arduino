@@ -17,14 +17,13 @@ uint32_t lenceu;
 #define ServerName  "128.199.208.149"
 #define ServerPort  (9123)
 
-// Self-reset
-#define selfreset A5
-
 //eeprom memory carrier
 #define eeAddress 0
 #define charSize 100
 
 //ssid & password stored in eeprom
+String ssid;
+String password;
 char c_json[charSize];
 
 ESP8266 wifi(Serial1, 115200);
@@ -39,7 +38,6 @@ uint8_t buffer[128];
 int timeout_counter;
 int addtimerEvent;
 int con_attempt=0;
-int addconattemptEvent;
 
 /* Driver Write & Read */
 //HARDWARE CONNECTIONS
@@ -69,12 +67,11 @@ void setup()
 {
     Serial.begin(115200);
     Serial1.begin(115200);
-    setup_selfreset();
 
     //Wait until smartconfig done & switch state change
     whileSMARTCONFIG();
     /*****************/
-    t.every(5000, routine);
+    
     initialize_conn();
 }
 void loop()
@@ -88,7 +85,6 @@ void loop()
         //Serial.println("--> masuk auth_via_wifi");
         recvFromServer(buffer);
         auth_reply(buffer);
-        enable_outputs();
       }
      }
     if (commandDetected) {
@@ -103,10 +99,9 @@ void loop()
 
 bool startSMARTCONFIG(void)
 {
-    String ssid;
-    String password;
     Serial.print("Setup Starting...\n");
     Serial.println("Turning on SMARTCONFIG...");
+    Serial1.begin(115200);
     delay(1000);
     if (wifi.SMARTCONFIG()){
       Serial.println("SMART-ON!");
@@ -125,6 +120,7 @@ bool startSMARTCONFIG(void)
         // do wait...
     
       }
+      build_eeprom_mem();
       Serial.println("Ready to go!");
       Serial.println("Please change the controller switch mode & restart the device!");
       return true;
@@ -136,16 +132,6 @@ bool startSMARTCONFIG(void)
 
 bool ESPconnect(void)
 {
-  if (!wifi.kick()){
-    Serial.println("Can not detect Wifi Device!");
-    return false;
-  }
-  if (con_attempt > 40){
-    con_attempt=0;
-    wifi.restart();
-    self_reset();
-    delay(3000);
-  }
   con_attempt++;
   if (wifi.ConnectAPCheck()){
     con_attempt=0;
@@ -188,7 +174,7 @@ bool auth_via_wifi(void)
   return false;
  }
  recvFromServer(buffer);
- if (!parse_n_check("cmd", "auth"))
+ if (!parse_n_check(buffer, "cmd", "auth"))
  {
   //Serial.println("--> tidak masuk recvFromServer");
   return false;
@@ -242,8 +228,6 @@ void serialEvent1()
       t.stop(addtimerEvent);
       timeout_counter = 0;
       Serial.println("TCP Closed!");
-      wifi.restart();
-      delay(3000);
     }
     commandDetected = true;
   }
@@ -262,7 +246,6 @@ bool auth_reply(uint8_t buffer[128])
   }
   if (!root.containsKey("current_driver"))
   {
-    Serial.println("login failed!");
     wifi.releaseTCP();
     init_is_done = false; 
     return false;
@@ -270,7 +253,6 @@ bool auth_reply(uint8_t buffer[128])
 
   if (!parsing_auth_reply(root))
   {
-    Serial.println("parse failed!");
     return false;
   }
 
@@ -280,7 +262,7 @@ bool auth_reply(uint8_t buffer[128])
   }
 
   recvFromServer(buffer);
-  if(!parse_n_check("status","success"))
+  if(!parse_n_check(buffer,"status","success"))
   {
     Serial.println("Please check your Internet or Wifi connection!");
     return false;
@@ -314,7 +296,7 @@ bool command_control(JsonObject& root)
     }
 
     recvFromServer(buffer);
-    if(!parse_n_check("status","success"))
+    if(!parse_n_check(buffer,"status","success"))
     {
       Serial.println("command_reply failed!");
       command_status = false;
@@ -342,7 +324,7 @@ bool keep_alive(void)
       return false;
     }
     recvFromServer(buffer);
-    if(!parse_n_check("cmd","peng"))
+    if(!parse_n_check(buffer,"cmd","peng"))
     {
       Serial.println("keep_alive failed!");
       keep_alive_status = false;    
@@ -359,7 +341,6 @@ bool keep_alive(void)
 bool update_panel_status(int n_shiftreg)
 {
   //current_driver extracted
-  bool update_status = false;
   StaticJsonBuffer<256> jsonBuffer;
   JsonObject& data = jsonBuffer.createObject();
   data["cmd"] = "current_update";
@@ -369,20 +350,7 @@ bool update_panel_status(int n_shiftreg)
     current_panel.add(SWITCH_ARRAYS[i]);
     //Serial.println(SWITCH_ARRAYS[i]);
   }
-
-  while(init_is_done){
-    send_message(data);
-    recvFromServer(buffer);
-      if(!parse_n_check("status","success"))
-      {
-        Serial.println(F("Re-update status.."));
-        update_status = false;    
-      } else {
-        update_status = true;
-        break;
-      }
-  }
-  return update_status;
+  return send_message(data);
 }
 
 bool notify_cmd_success (const char* cmd, const char* type, const char* id)
@@ -408,38 +376,26 @@ void execute_control(int shift, int shift_bit, int value)
 }
 
 
-bool parse_n_check(const char* cmd_class, const char* value)
+bool parse_n_check(uint8_t buffer[128], const char* cmd_class, const char* value)
 {
-   uint8_t msg[128];
-   for (int i=0; i < sizeof(buffer); i++) {
-      msg[i]=buffer[i];
-   }
-   StaticJsonBuffer<256> jsonBuffer;
-   JsonObject& root = jsonBuffer.parseObject((char*)msg);
-      
-   if (!root.success())
-   {
-     memset(msg, 0, sizeof(msg));
-     //Serial.println("Cannot read!");
-     return false;
-   }
+  StaticJsonBuffer<256> jsonBuffer;
+  JsonObject& root = jsonBuffer.parseObject((char*)buffer);
   
-   if (!root.containsKey(cmd_class))
-   {
-     memset(msg, 0, sizeof(msg));
-     //Serial.println("no cmd!");
-     return false;
-   }
+  if (!root.success())
+  {
+    Serial.println("Cannot read!");
+    return false;
+  }
 
-   const char* check = root[cmd_class];
-   if ((strcmp (check, value) != 0))
-   {
-     memset(msg, 0, sizeof(msg));
-     //Serial.println("no value auth");
+  if (root.containsKey(cmd_class))
+  {
+     const char* check = root[cmd_class];
+     if ((strcmp (check,value) == 0))
+     {
+      return true;
+     }
      return false;
-   }
-   memset(msg, 0, sizeof(msg));
-   return true;
+  }
 }
 
 bool check_cmd_n_content(JsonObject& root, const char* cmd_class, const char* value)
@@ -470,8 +426,9 @@ bool parsing_auth_reply(JsonObject& root)
       Serial.println(current_driver[j]);
     }*/
     return true;
+  } else {
+    return false;
   }
-  return false;
 }
 
 bool send_current_init(JsonObject& root)
@@ -501,9 +458,10 @@ bool send_message(JsonObject& data)
   {
    Serial.println("Send OK!");
    return true;
+  } else {
+   Serial.println("Send not OK!");
+   return false;
   }
-  Serial.println("Send not OK!");
-  return false;
 }
 
 void recvFromServer (uint8_t buffer1[128])
@@ -675,10 +633,11 @@ void initialize_conn(void)
     wifi.releaseTCP();
     if(auth_via_wifi())
     {
-      enable_outputs();
+      enable_outputs;
       recvFromServer(buffer);
       auth_reply(buffer);
     }
+    t.every(5000, routine);
 }
 
 void whileSMARTCONFIG(void)
@@ -708,12 +667,31 @@ char* get_hmac(void)
    return hmac;
 }
 
-void setup_selfreset(void){
-  pinMode(selfreset, OUTPUT);
-  digitalWrite(selfreset, HIGH);
+/*** EEPROM ARDUINO THINGS ***/
+void build_eeprom_mem(void)
+{
+  /* build the eeprom memory */
+  StaticJsonBuffer<256> jsonBuffer;
+  JsonObject& data = jsonBuffer.createObject();
+  data["ssid"] = ssid;
+  data["password"] = password;
+  
+  String jsonin;
+  data.printTo(jsonin);
+  strncpy(c_json, jsonin.c_str(), charSize);
+  c_json[charSize - 1] = '\0';
+  //Serial.println(c_json);
+  EEPROM.put(eeAddress, c_json);
 }
 
-void self_reset(void){
-  digitalWrite(selfreset, LOW);
+char* read_eeprom_mem(void)
+{
+  /* read the built eeprom memory */
+  EEPROM.get(eeAddress, c_json);
+  //Serial.println(c_json);
+  String jsonout(c_json);
+  char* charjson;
+  charjson = strdup(jsonout.c_str());
+  return charjson;
 }
 

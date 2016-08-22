@@ -1,4 +1,4 @@
-#define NUMBER_OF_SHIFT_REG   4
+#define NUMBER_OF_SHIFT_REG   5
 
 //HARDWARE CONNECTIONS
 //Pin connected to ST_CP of 74HC595

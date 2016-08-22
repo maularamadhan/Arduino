@@ -4,10 +4,10 @@
 // HARDWARE CONNECTIONS
 // Connect the following pins between your Arduino and the 74HC165 Breakout Board
 // Connect pins A-H to 5V or GND or switches or whatever
-const int data_pin = 8; // Connect Pin 8 to SER_OUT (serial data out)
-const int shld_pin = 5; // Connect Pin 5 to SH/!LD (shift or active low load)
-const int clk_pin = 7; // Connect Pin 7 to CLK (the clock that times the shifting)
-const int ce_pin = 6; // Connect Pin 6 to !CE (clock enable, active low)
+const int data_pin = 10; // Connect Pin 10 to SER_OUT (serial data out)
+const int shld_pin = 7; // Connect Pin 7 to SH/!LD (shift or active low load)
+const int clk_pin = 9; // Connect Pin 9 to CLK (the clock that times the shifting)
+const int ce_pin = 8; // Connect Pin 8 to !CE (clock enable, active low)
 
 byte SHIFT_ARRAYS[NUMBER_OF_SHIFT_REG]; // Variable to store the values loaded from the shift register
 
@@ -15,7 +15,7 @@ byte SHIFT_ARRAYS[NUMBER_OF_SHIFT_REG]; // Variable to store the values loaded f
 void setup() 
 {                
   // Initialize serial to gain the power to obtain relevant information, 9600 baud
-  Serial.begin(9600);
+  Serial.begin(115200);
   // Setup required for the shift-in procedure
   SERIAL_IN_SETUP();
 }
