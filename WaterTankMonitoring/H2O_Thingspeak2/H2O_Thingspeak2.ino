@@ -1,24 +1,21 @@
-// Twitter client sketch for ENC28J60 based Ethernet Shield. Uses 
-// arduino-tweet.appspot.com as a OAuth gateway.
-// Step by step instructions:
-// 
-//  1. Get a oauth token:
-//     http://arduino-tweet.appspot.com/oauth/twitter/login
-//  2. Put the token value in the TOKEN define below
-//  3. Run the sketch!
-//
-//  WARNING: Don't send more than 1 tweet per minute!
-//  WARNING: This example uses insecure HTTP and not HTTPS.
-//  The API key will be sent over the wire in plain text.
-//  NOTE: Twitter rejects tweets with identical content as dupes (returns 403)
+// Simple demo for feeding some random data to Pachube.
+// 2011-07-08 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
+
+// Handle returning code and reset ethernet module if needed
+// 2013-10-22 hneiraf@gmail.com
+
+// Modifing so that it works on my setup for www.thingspeak.com.
+// Arduino pro-mini 5V/16MHz, ETH modul on SPI with CS on pin 10.
+// Also added a few changes found on various forums. Do not know what the 
+// res variable is for, tweaked it so it works faster for my application
+// 2015-11-09 dani.lomajhenic@gmail.com
 
 #include <EtherCard.h>
-//#include <avr/wdt.h>
 
-// OAUTH key from http://arduino-tweet.appspot.com/
-#define TOKEN   "753435446261055488-8uHaIvhCcjInD28tUQluxSKLg9pV4Mu"
-const char* const warning PROGMEM = ", Warning!!!";
-const char* const level PROGMEM = "Lvl: ";
+// change these settings to match your own setup
+//#define FEED "000"
+#define APIKEY "8NUEO9NCDJWH95JP" // put your key here
+#define ethCSpin 10 // put your CS/SS pin here.
 
 // Sensor Constant
 const uint16_t LVMAX PROGMEM = 310;
@@ -34,12 +31,12 @@ const int clockPin PROGMEM = 4;
 const int dataPin PROGMEM = 6;
 
 // auto-reset
-const int selfreset PROGMEM = A5;
+const int selfreset PROGMEM = 8;
 
 // ethernet interface mac address, must be unique on the LAN
 byte mymac[] = { 0x74,0x69,0x69,0x2D,0x30,0xEE };
 
-const char website[] PROGMEM = "arduino-tweet.appspot.com";
+const char website[] PROGMEM = "api.thingspeak.com";
 
 static byte session;
 
@@ -62,12 +59,12 @@ static byte mymaskip[] = { 255,255,252,0 };
 
 void setup () {
   Serial.begin(57600);
-  Serial.println("\n[Twitter Client]");
+  Serial.println("\n[Thingspeak Client]");
   SERIAL_OUT_SETUP();
   eth_init();
   eth_dnslookup();
   update_level_meter(read_sensor());
-  sendToTwitter();
+  sendToThingspeak();
 }
 
 void loop () {
@@ -80,45 +77,44 @@ void loop () {
     }
   }
   
-  for(int i = 0; i<50; i++){
+  for(int i = 0; i<10; i++){
     Serial.print("counting..(");
-    Serial.print(50-i);
+    Serial.print(10-i);
     Serial.println(")");
-    delay(6000);
+    delay(2000);
     update_level_meter(read_sensor());
   }
   
   //eth_init();
   eth_dnslookup();
-  sendToTwitter(); 
+  sendToThingspeak(); 
 }
 
-void sendToTwitter () {
-  Serial.println(F("Sending tweet..."));
-  byte sd = stash.create();
-
-  //const char tweet[] = "@h2ohw works!";
-  stash.print("token=");
-  stash.print(TOKEN);
-  stash.print("&status=");
-  stash.print(level);
-  stash.print(read_sensor());
-  stash.print("%");
-  if(notif(read_sensor())){
-    stash.print(warning);
-  }
-  stash.println();
-  stash.save();
+void sendToThingspeak () {
+    // generate two fake values as payload - by using a separate stash,
+    // we can determine the size of the generated message ahead of time
+    // field1=(Field 1 Data)&field2=(Field 2 Data)&field3=(Field 3 Data)&field4=(Field 4 Data)&field5=(Field 5 Data)&field6=(Field 6 Data)&field7=(Field 7 Data)&field8=(Field 8 Data)&lat=(Latitude in Decimal Degrees)&long=(Longitude in Decimal Degrees)&elevation=(Elevation in meters)&status=(140 Character Message)
+    byte sd = stash.create();
+    stash.print("field1=");
+    stash.print(read_sensor());
+    //stash.print("&field2=");
+    //stash.print(one);
+    //stash.print("&field3=");
+    //stash.print(msje);
+    stash.save();
   int stash_size = stash.size();
 
-  // Compose the http POST request, taking the headers below and appending
-  // previously created stash in the sd holder.
-  Stash::prepare(PSTR("POST http://$F/update HTTP/1.0" "\r\n"
-    "Host: $F" "\r\n"
-    "Content-Length: $D" "\r\n"
-    "\r\n"
-    "$H"),
-  website, website, stash_size, sd);
+  // generate the header with payload - note that the stash size is used,
+    // and that a "stash descriptor" is passed in as argument using "$H"
+    Stash::prepare(PSTR("POST /update HTTP/1.0" "\r\n"
+      "Host: $F" "\r\n"
+      "Connection: close" "\r\n"
+      "X-THINGSPEAKAPIKEY: $F" "\r\n"
+      "Content-Type: application/x-www-form-urlencoded" "\r\n"
+      "Content-Length: $D" "\r\n"
+      "\r\n"
+      "$H"),
+    website, PSTR(APIKEY), stash.size(), sd);
 
   // send the packet - this also releases all stash buffers once done
   // Save the session ID so we can watch for it in the main loop.
