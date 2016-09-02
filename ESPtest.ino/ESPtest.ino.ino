@@ -1,4 +1,3 @@
-#include <doxygen.h>
 #include <ArduinoJson.h>
 #include <MD5.h>
 #include <ESP8266.h>
@@ -14,7 +13,8 @@ uint8_t current_driver[NMAX_SHIFTREG];
 uint8_t SWITCH_ARRAYS[NMAX_SHIFTREG];
 uint32_t lenceu;
 
-#define ServerName  "128.199.208.149"
+//#define ServerName  "128.199.208.149"
+#define ServerName  "192.168.130.111"
 #define ServerPort  (9123)
 
 // Self-reset
@@ -33,7 +33,7 @@ ESP8266 wifi(Serial1, 115200);
 // Carrier for Commands
 bool commandDetected = false;
 bool init_is_done = false;
-uint8_t buffer[128];
+uint8_t buffer[256];
 
 // Connection Status Timeout Variable
 int timeout_counter;
@@ -249,7 +249,7 @@ void serialEvent1()
   }
 }
 
-bool auth_reply(uint8_t buffer[128])
+bool auth_reply(uint8_t buffer[256])
 {
   //Auth_reply detected
   StaticJsonBuffer<256> jsonBuffer;
@@ -410,7 +410,8 @@ void execute_control(int shift, int shift_bit, int value)
 
 bool parse_n_check(const char* cmd_class, const char* value)
 {
-   uint8_t msg[128];
+   //uint8_t msg[128];
+   uint8_t msg[256];
    for (int i=0; i < sizeof(buffer); i++) {
       msg[i]=buffer[i];
    }
@@ -496,7 +497,7 @@ bool send_message(JsonObject& data)
   json = json + "\r\n";
   const char* charjson;
   charjson = json.c_str();
-  //Serial.println(charjson);
+  Serial.println(charjson);
   if(wifi.send((const uint8_t*)charjson, strlen(charjson)))
   {
    Serial.println("Send OK!");
@@ -506,11 +507,11 @@ bool send_message(JsonObject& data)
   return false;
 }
 
-void recvFromServer (uint8_t buffer1[128])
+void recvFromServer (uint8_t buffer1[256])
 {
   memset(buffer1, 0, sizeof(buffer1));
 
-  uint8_t buffer[128];
+  uint8_t buffer[256];
   static uint8_t mux_id = 0;
   uint32_t len = wifi.recv(mux_id, buffer, sizeof(buffer), 10000);
   

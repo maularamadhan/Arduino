@@ -8,7 +8,7 @@
 
 #define NMAX_SHIFTREG 25
 // Enter a MAC address and IP address for your controller below.
-uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
+uint8_t mac[6] = {0x18,0xfe,0x34,0xa6,0x54,0x22}; // 1 = 0x05, 2 = 0x0A, 3 = 0x0F, 4 = 0x14, 5 = 0x19, 6 = 0x1E ... dst
 
 // Enter the IP address of the server you're connecting to:
 #define ServerName  "192.168.130.111"
@@ -29,7 +29,7 @@ ESP8266 wifi(Serial1, 115200);
 
 // Carrier for Commands
 bool commandDetected = false;
-uint8_t buffer[128];
+uint8_t buffer[256];
 
 // Shift registers settings
 int n_shiftreg=10;
@@ -59,7 +59,7 @@ int resetPin = 6;
 
 // Connect the following pins between your Arduino and the 74HC165 Breakout Board
 const int data_pin = 10; // Connect Pin 10 to SER_OUT (serial data out)
-const int shld_pin = 7; // Connect Pin 7 to SH/!LD (shift or active low load)
+const int shld_pin = 7; // Connect Pin 7 to SH/!LD/Q7 (shift or active low load)
 const int clk_pin = 9; // Connect Pin 9 to CLK (the clock that times the shifting)
 const int ce_pin = 8; // Connect Pin 8 to !CE (clock enable, active low)
 
@@ -74,7 +74,6 @@ void setup() {
   Serial1.begin(115200);
   setup_selfreset();
   Serial.println(F("Starting device ..."));
-  eth_init();
 
   //Wait until smartconfig done & switch state change
   whileSMARTCONFIG();
@@ -82,6 +81,7 @@ void setup() {
   
   STATEB = digitalRead(inPin2);
   if (STATEB == 1){
+    eth_init();
     eth_initialize_conn();
   } else {
     initialize_conn();
@@ -136,7 +136,7 @@ void eth_recv(void) {
   int size;
   while((size = client.available()) > 0)
   {
-    uint8_t msg[128];
+    uint8_t msg[256];
     size = client.read(msg,size);
     for (int i=0; i < size; i++) {
       //Serial.print((char)msg[i]);
@@ -190,7 +190,6 @@ bool eth_check_message(void) {
    }
 
    if(parse_n_check("cmd", "auth_reply")){
-      eth_parsing_auth_reply();      
       return eth_send_current_init();
    }
 
@@ -210,7 +209,7 @@ bool eth_check_message(void) {
 
 bool parse_n_check(const char* cmd_class, const char* value)
 {
-   uint8_t msg[128];
+   uint8_t msg[256];
    for (int i=0; i < sizeof(buffer); i++) {
       msg[i]=buffer[i];
    }
@@ -284,6 +283,7 @@ bool eth_send_auth (void) {
 }
 
 bool eth_send_current_init (void) {
+   eth_parsing_auth_reply();  
    bool update_status = false;
    memset(buffer, 0, sizeof(buffer));
 
@@ -300,22 +300,30 @@ bool eth_send_current_init (void) {
    ///////////////////////////////////////////////
    
    init_is_done = false;
-   if(!eth_send_message(data)){
+   if(eth_send_message(data)){
+     Serial.println(F("current_init sent!"));
+     addtimerEvent = t.every(1000, adding_timer);
+     init_is_done = true;
+     Serial.println(F("Server Initialization done"));
+   }
+
+   /*if(!eth_send_message(data)){
         return false;
    }
-     Serial.println(F("current_init sent!"));
-     for (int i = 0; i < 30; i++){
-        eth_recv();
-        if(!parse_n_check("status", "success")){
-          //Serial.println(F("keep_alive failed!"));
-        } else {
-          update_status = true;
-          addtimerEvent = t.every(1000, adding_timer);
-          init_is_done = true;
-          Serial.println(F("Server Initialization done"));
-          break;
-        }
-     }
+   
+   Serial.println(F("current_init sent!"));
+   for (int i = 0; i < 30; i++){
+      eth_recv();
+      if(!parse_n_check("status", "success")){
+        //Serial.println(F("keep_alive failed!"));
+      } else {
+        update_status = true;
+        addtimerEvent = t.every(1000, adding_timer);
+        init_is_done = true;
+        Serial.println(F("Server Initialization done"));
+        break;
+      }
+   }*/
 
    return init_is_done;
 }
@@ -415,7 +423,7 @@ bool send_pong (void) {
 /*************************** AUTHENTICATION ***************************/
 bool eth_parsing_auth_reply(void) {  
   Serial.println(F("command detected!"));
-  uint8_t msg[128];
+  uint8_t msg[256];
   for (int i=0; i < sizeof(buffer); i++) {
      msg[i]=buffer[i];
   }
@@ -448,7 +456,7 @@ bool eth_command_control(void)
 {
   //command detected
   Serial.println("command detected!");
-  uint8_t msg[128];
+  uint8_t msg[256];
   for (int i=0; i < sizeof(buffer); i++) {
      msg[i]=buffer[i];
   }
@@ -465,6 +473,8 @@ bool eth_command_control(void)
   bool command_status = false;
 
   execute_control(root["shift"], root["bit"], root["on"]);
+
+  write_shift_regs(current_driver);
   Serial.println("Write Driver state done.");
   if (!eth_notify_cmd_success (cmd, cmd_type, cmd_id))
   {
@@ -534,8 +544,8 @@ void write_shift_regs(uint8_t outcoming[NMAX_SHIFTREG])
   Serial.println(n_shiftreg);
   for (int i=0; i < n_shiftreg; i++)
   {
-    //Serial.println("ini : ");
-    //Serial.println(outcoming[i]);
+    Serial.println("ini : ");
+    Serial.println(outcoming[i]);
     shiftOut(dataPin, clockPin, MSBFIRST, outcoming[(n_shiftreg-1)-i]);
     //all data is shifting...
   }
@@ -810,7 +820,7 @@ void serialEvent1()
   }
 }
 
-bool auth_reply(uint8_t buffer[128])
+bool auth_reply(uint8_t buffer[256])
 {
   //Auth_reply detected
   StaticJsonBuffer<256> jsonBuffer;
@@ -1029,7 +1039,7 @@ bool send_message(JsonObject& data)
   json = json + "\r\n";
   const char* charjson;
   charjson = json.c_str();
-  //Serial.println(charjson);
+  Serial.println(charjson);
   if(wifi.send((const uint8_t*)charjson, strlen(charjson)))
   {
    Serial.println(F("Send OK!"));
@@ -1039,11 +1049,11 @@ bool send_message(JsonObject& data)
   return false;
 }
 
-void recvFromServer (uint8_t buffer1[128])
+void recvFromServer (uint8_t buffer1[256])
 {
   memset(buffer1, 0, sizeof(buffer1));
 
-  uint8_t buffer[128];
+  uint8_t buffer[256];
   static uint8_t mux_id = 0;
   uint32_t len = wifi.recv(mux_id, buffer, sizeof(buffer), 10000);
   
@@ -1157,10 +1167,10 @@ void wifi_loop(void){
   check_timeout_disconnection();
   if (!init_is_done)
   {
-    //Serial.println("--> masuk init_is_done=false");
+    Serial.println("--> masuk init_is_done=false");
     wifi.releaseTCP();
     if(auth_via_wifi()){
-      //Serial.println("--> masuk auth_via_wifi");
+      Serial.println("--> masuk auth_via_wifi");
       recvFromServer(buffer);
       auth_reply(buffer);
       enable_outputs();

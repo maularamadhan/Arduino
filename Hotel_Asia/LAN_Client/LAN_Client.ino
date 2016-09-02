@@ -1,13 +1,13 @@
 #include <SPI.h>
 #include <UIPEthernet.h>
-#include <doxygen.h>
+//#include <doxygen.h>
 #include <ArduinoJson.h>
 #include <MD5.h>
 #include <Timer.h>
 
 #define NMAX_SHIFTREG 25
 // Enter a MAC address and IP address for your controller below.
-uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
+uint8_t mac[6] = {0x18,0xfe,0x34,0xa6,0x54,0x22};
 
 // Enter the IP address of the server you're connecting to:
 #define ServerName  "192.168.130.111"
@@ -22,7 +22,8 @@ EthernetClient client;
 
 // Carrier for Commands
 bool commandDetected = false;
-uint8_t buffer[128];
+//uint8_t buffer[128];
+uint8_t buffer[256];
 
 // Shift registers settings
 int n_shiftreg=1;
@@ -121,7 +122,7 @@ void eth_recv(void) {
   int size;
   while((size = client.available()) > 0)
   {
-    uint8_t msg[128];
+    uint8_t msg[256];
     size = client.read(msg,size);
     for (int i=0; i < size; i++) {
       //Serial.print((char)msg[i]);
@@ -178,6 +179,7 @@ bool eth_check_message(void) {
    }
    
    if(parse_n_check("cmd", "command")){
+      t.stop(addtimerEvent);
       timeout_counter = 0;
       return eth_command_control();
    }
@@ -188,7 +190,7 @@ bool eth_check_message(void) {
 
 bool parse_n_check(const char* cmd_class, const char* value)
 {
-   uint8_t msg[128];
+   uint8_t msg[256];
    for (int i=0; i < sizeof(buffer); i++) {
       msg[i]=buffer[i];
    }
@@ -222,9 +224,9 @@ bool parse_n_check(const char* cmd_class, const char* value)
 
 String mac2str (uint8_t mac[6])
 {
-  String tmp = "";
-  for (int i=0; i < 6; i++) {
-    tmp = tmp + "0" + String(mac[i]);
+  String tmp = String(mac[0],HEX);
+  for (int i=1; i < 6; i++) {
+    tmp = tmp + ":" + String(mac[i],HEX);
   }
   return tmp;
 }
@@ -355,7 +357,7 @@ bool send_pong (void) {
 /*************************** AUTHENTICATION ***************************/
 bool eth_parsing_auth_reply(void) {  
   Serial.println(F("command detected!"));
-  uint8_t msg[128];
+  uint8_t msg[256];
   for (int i=0; i < sizeof(buffer); i++) {
      msg[i]=buffer[i];
   }
@@ -388,7 +390,7 @@ bool eth_command_control(void)
 {
   //command detected
   Serial.println("command detected!");
-  uint8_t msg[128];
+  uint8_t msg[256];
   for (int i=0; i < sizeof(buffer); i++) {
      msg[i]=buffer[i];
   }
@@ -423,9 +425,9 @@ bool eth_command_control(void)
       command_status = false;
     } else {
       command_status = true;
+      addtimerEvent = t.every(1000, adding_timer);
       break;
     }
-    delay(1000);
   }
   init_is_done = command_status;
   return command_status;

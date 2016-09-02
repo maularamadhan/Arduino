@@ -110,6 +110,7 @@ void loop () {
  int freeCount = stash.freeCount();
     if (freeCount <= 3) {   Stash::initMap(56); } 
   }
+   update_level_meter(read_sensor());
    const char* reply = ether.tcpReply(session);
    
    if (reply != 0) {
@@ -165,8 +166,8 @@ void initialize_ethernet(void){
 uint16_t read_sensor(void){
   uint16_t val;
   uint16_t percentage;
-  //val = analogRead(analogPin); // READ FROM THE REAL SENSOR
-  val = random(LVMIN, LVMAX); //FOR TESTING
+  val = analogRead(analogPin); // READ FROM THE REAL SENSOR
+  //val = random(LVMIN, LVMAX); //FOR TESTING
   percentage = map(val, LVMIN, LVMAX, 0, 105);
   if(percentage > 100){
     percentage = 100;

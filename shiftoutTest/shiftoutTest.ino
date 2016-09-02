@@ -22,6 +22,8 @@ void setup() {
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
   pinMode(resetPin, OUTPUT);
+  pinMode(oePin, OUTPUT);
+  digitalWrite(oePin, LOW);
   digitalWrite(resetPin, HIGH);
   x=0; //bit in each shift
   y=0; //n-shift
@@ -40,12 +42,12 @@ void loop() {
     y = 0;
   }
 
-  write_shift_regs0(DRIVER_ARRAYS);
+  //write_shift_regs0(DRIVER_ARRAYS);
+  //delay(2000);
+  //write_shift_regs1(DRIVER_ARRAYS);
+  //delay(2000);
+  running_relay(DRIVER_ARRAYS); // Write the shift registers and change Drivers State
   delay(1000);
-  write_shift_regs1(DRIVER_ARRAYS);
-  delay(1000);
-  //running_relay(DRIVER_ARRAYS); // Write the shift registers and change Drivers State
-  //delay(500);
   x++;
 } 
 
