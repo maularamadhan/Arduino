@@ -17,76 +17,48 @@ uint8_t mac[6] = {0x18,0xfe,0x34,0xa6,0x54,0x22};
 
 // Networking logical
 bool anymessage = false;
-bool init_is_done = false;
+//bool init_is_done = false;
 
 // Initialize the Ethernet client library
 EthernetClient client;
 
 // Carrier for Commands
-bool commandDetected = false;
+//bool commandDetected = false;
 //uint8_t buffer[128];
-uint8_t buffer[256];
+//uint8_t buffer[256];
 
 // Shift registers settings
-int n_shiftreg=1;
-static uint8_t current_driver[NMAX_SHIFTREG];
-static uint8_t SWITCH_ARRAYS[NMAX_SHIFTREG];
+//int n_shiftreg=1;
+//static uint8_t current_driver[NMAX_SHIFTREG];
+//static uint8_t SWITCH_ARRAYS[NMAX_SHIFTREG];
 
 // Connection Status Timeout Variable
-Timer t;
-int timeout_counter;
-int addtimerEvent;
-int con_attempt=0;
-int addconattemptEvent;
+//Timer t;
+//int timeout_counter;
+//int addtimerEvent;
+//int con_attempt=0;
+//int addconattemptEvent;
 
 /* Driver Write & Read */
 //HARDWARE CONNECTIONS
 //Pin connected to OE of 74HC595
-int oePin = 2;
+//int oePin = 2;
 //Pin connected to ST_CP of 74HC595
-int latchPin = 4;
+//int latchPin = 4;
 //Pin connected to SH_CP of 74HC595
-int clockPin = 5;
+//int clockPin = 5;
 ////Pin connected to DS of 74HC595 
-int dataPin = 3;
+//int dataPin = 3;
 //Pin connected to MR of 74HC595
-int resetPin = 6;
+//int resetPin = 6;
 
 // Connect the following pins between your Arduino and the 74HC165 Breakout Board
-const int data_pin = 10; // Connect Pin 10 to SER_OUT (serial data out)
-const int shld_pin = 7; // Connect Pin 7 to SH/!LD (shift or active low load)
-const int clk_pin = 9; // Connect Pin 9 to CLK (the clock that times the shifting)
-const int ce_pin = 8; // Connect Pin 8 to !CE (clock enable, active low)
+//const int data_pin = 10; // Connect Pin 10 to SER_OUT (serial data out)
+//const int shld_pin = 7; // Connect Pin 7 to SH/!LD (shift or active low load)
+//const int clk_pin = 9; // Connect Pin 9 to CLK (the clock that times the shifting)
+//const int ce_pin = 8; // Connect Pin 8 to !CE (clock enable, active low)
 
-int inPin1 = A3;
-int STATEA = 0;
-
-// Selector
-int connect_via; // 1 = LAN, 2 = WIFI
-
-void setup() {
-  // Open serial communications and wait for port to open:
-  Serial.begin(115200);
-  eth_init();
-  t.every(5000, eth_routine);
-  eth_initialize_conn();
-}
-
-void loop() {
-  check_timeout_disconnection();
-  if(!init_is_done){
-    eth_initialize_conn();
-  }
-  eth_recv();
-  // as long as there are bytes in the serial queue,
-  // read them and send them out the socket if it's open:
-  if(anymessage){
-    Serial.print(F("-->"));
-    eth_check_message();
-  }
-  eth_connected();
-  t.update();
-}
+/*** FUNCTIONS FOR ETH ***/
 
 void eth_init(void) {
   // start the Ethernet connection DHCP
@@ -190,7 +162,7 @@ bool eth_check_message(void) {
    return false;
 }
 
-bool parse_n_check(const char* cmd_class, const char* value)
+/*bool parse_n_check(const char* cmd_class, const char* value)
 {
    uint8_t msg[256];
    for (int i=0; i < sizeof(buffer); i++) {
@@ -222,7 +194,7 @@ bool parse_n_check(const char* cmd_class, const char* value)
    }
    memset(msg, 0, sizeof(msg));
    return true;
-}
+}*/
 
 String mac2str (uint8_t mac[6])
 {
@@ -409,18 +381,15 @@ bool eth_command_control(void)
   bool command_status = false;
 
   execute_control(root["shift"], root["bit"], root["on"]);
-  write_shift_regs(current_driver);
   Serial.println("Write Driver state done.");
   if (!eth_notify_cmd_success (cmd, cmd_type, cmd_id))
   {
      return false;
   }
 
-  //differentiate here
+  /*//differentiate here
   for (int i = 0; i < 30; i++)
   {
-    //write_shift_regs(current_driver);
-    
     eth_recv();
     if(!parse_n_check("status","success"))
     {
@@ -431,15 +400,17 @@ bool eth_command_control(void)
       addtimerEvent = t.every(1000, adding_timer);
       break;
     }
-  }
-  init_is_done = command_status;
-  return command_status;
+  }*/
+  write_shift_regs(current_driver);
+  //init_is_done = command_status;
+  //return command_status;
+  return true;
 }
 
 /**********************************************************************/
 
 /************************** DRIVER FUNCTIONS **************************/
-void SERIAL_OUT_SETUP(void)
+/*void SERIAL_OUT_SETUP(void)
 {
   //set pins to output because they are addressed in the main loop
   pinMode(latchPin, OUTPUT);
@@ -548,7 +519,7 @@ void turn_off_all_driver(void)
     current_driver[(n_shiftreg-1)-i] = 0x00;
   }
   write_shift_regs(current_driver);
-}
+}*/
 
 bool eth_update_panel_status(int n_shiftreg)
 {
@@ -581,12 +552,12 @@ void eth_routine(void)
   }
 }
 
-void adding_timer(void)
+/*void adding_timer(void)
 {
   timeout_counter++;
-}
+}*/
 
-void check_timeout_disconnection(void)
+/*void check_timeout_disconnection(void)
 {
   //Serial.println("masuk check_timeout");
   if (timeout_counter > 45)
@@ -598,7 +569,7 @@ void check_timeout_disconnection(void)
     disable_outputs;
     init_is_done = false;
   }
-}
+}*/
 
 /**********************************************************************/
 
@@ -619,5 +590,32 @@ void eth_initialize_conn(void)
 
 /**********************************************************************/
 
+/*** MAIN FOR ETH ***/
+void eth_setup(void){
+  
+  // Open serial communications and wait for port to open:
+  Serial.begin(115200);
+  eth_init();
+  t.every(5000, eth_routine);
+  eth_initialize_conn();
+}
+
+void eth_loop(void){
+  check_timeout_disconnection();
+  if(!init_is_done){
+    eth_initialize_conn();
+  } else {
+    digitalWrite(DRV_ON, LOW);
+  }
+  eth_recv();
+  // as long as there are bytes in the serial queue,
+  // read them and send them out the socket if it's open:
+  if(anymessage){
+    Serial.print(F("-->"));
+    eth_check_message();
+  }
+  eth_connected();
+  t.update();
+}
 
 

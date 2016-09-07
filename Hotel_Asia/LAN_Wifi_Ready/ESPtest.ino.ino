@@ -4,102 +4,8 @@
 #include <Timer.h>
 #include <EEPROM.h>
 
-#define NMAX_SHIFTREG 25
-int n_shiftreg=10;
 
-Timer t;
-
-uint8_t current_driver[NMAX_SHIFTREG];
-uint8_t SWITCH_ARRAYS[NMAX_SHIFTREG];
-uint32_t lenceu;
-
-//#define ServerName  "128.199.208.149"
-#define ServerName  "192.168.130.111"
-#define ServerPort  (9123)
-
-// Self-reset
-#define selfreset A5
-
-//eeprom memory carrier
-#define eeAddress 0
-#define charSize 100
-
-//ssid & password stored in eeprom
-char c_json[charSize];
-
-ESP8266 wifi(Serial1, 115200);
-//SIM900 SIM900(Serial2, 115200);
-
-// Carrier for Commands
-bool commandDetected = false;
-bool init_is_done = false;
-uint8_t buffer[256];
-
-// Connection Status Timeout Variable
-int timeout_counter;
-int addtimerEvent;
-int con_attempt=0;
-int addconattemptEvent;
-
-/* Driver Write & Read */
-//HARDWARE CONNECTIONS
-//Pin connected to OE of 74HC595
-int oePin = 2;
-//Pin connected to ST_CP of 74HC595
-int latchPin = 4;
-//Pin connected to SH_CP of 74HC595
-int clockPin = 5;
-////Pin connected to DS of 74HC595 
-int dataPin = 3;
-//Pin connected to MR of 74HC595
-int resetPin = 6;
-
-// Connect the following pins between your Arduino and the 74HC165 Breakout Board
-const int data_pin = 10; // Connect Pin 10 to SER_OUT (serial data out)
-const int shld_pin = 7; // Connect Pin 7 to SH/!LD (shift or active low load)
-const int clk_pin = 9; // Connect Pin 9 to CLK (the clock that times the shifting)
-const int ce_pin = 8; // Connect Pin 8 to !CE (clock enable, active low)
-
-/* Selecting Mode */
-// Define what pin to determine mode & what value to carry them
-int inPin1 = A3;
-int STATEA = 0;
-
-void setup()
-{
-    Serial.begin(115200);
-    Serial1.begin(115200);
-    setup_selfreset();
-
-    //Wait until smartconfig done & switch state change
-    whileSMARTCONFIG();
-    /*****************/
-    t.every(5000, routine);
-    initialize_conn();
-}
-void loop()
-{
-    check_timeout_disconnection();
-    if (!init_is_done)
-    {
-      //Serial.println("--> masuk init_is_done=false");
-      wifi.releaseTCP();
-      if(auth_via_wifi()){
-        //Serial.println("--> masuk auth_via_wifi");
-        recvFromServer(buffer);
-        auth_reply(buffer);
-        enable_outputs();
-      }
-     }
-    if (commandDetected) {
-      if (init_is_done){
-       recv_cmd();
-       commandDetected = false;
-      }
-    }
-    t.update();
-}
-
+/*** FUNCTION FOR ESP ***/
 bool startSMARTCONFIG(void)
 {
     String ssid;
@@ -718,5 +624,42 @@ void setup_selfreset(void){
 
 void self_reset(void){
   digitalWrite(selfreset, LOW);
+}
+
+
+/*** MAIN FOR ESP ***/
+void esp_setup(void){
+  Serial.begin(115200);
+  Serial1.begin(115200);
+  setup_selfreset();
+
+  //Wait until smartconfig done & switch state change
+  whileSMARTCONFIG();
+  /*****************/
+  t.every(5000, routine);
+  initialize_conn();
+  digitalWrite(DRV_ON, LOW);
+}
+
+void esp_loop(void){
+  check_timeout_disconnection();
+  if (!init_is_done)
+  {
+    //Serial.println("--> masuk init_is_done=false");
+    wifi.releaseTCP();
+    if(auth_via_wifi()){
+      //Serial.println("--> masuk auth_via_wifi");
+      recvFromServer(buffer);
+      auth_reply(buffer);
+      enable_outputs();
+    }
+   }
+  if (commandDetected) {
+    if (init_is_done){
+     recv_cmd();
+     commandDetected = false;
+    }
+  }
+  t.update();
 }
 
