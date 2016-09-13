@@ -26,7 +26,7 @@ Stash stash;
 byte session;
 
 // ethernet interface ip address
-static byte myip[] = { 192,168,128,203 };
+static byte myip[] = { 192,168,128,199 };
 // gateway ip address
 static byte mygwip[] = { 192,168,128,3 };
 // ethernet DNS ip address
@@ -138,13 +138,13 @@ void initialize_ethernet(void){
       continue;
     }
     
-    if (!ether.dhcpSetup()){
-      Serial.println("DHCP failed");
+    //if (!ether.dhcpSetup()){
+      //Serial.println("DHCP failed");
       if (!ether.staticSetup(myip, mygwip, mydnsip, mymaskip)){
         Serial.println(F("static setup failed"));
+        continue;
       }
-      continue;
-    }
+    //}
 
     ether.printIp("IP:  ", ether.myip);
     ether.printIp("GW:  ", ether.gwip);  
@@ -188,8 +188,8 @@ void SERIAL_OUT_SETUP(void)
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
-  pinMode(selfreset, OUTPUT);
-  digitalWrite(selfreset, HIGH);
+  //pinMode(selfreset, OUTPUT);
+  //digitalWrite(selfreset, HIGH);
 }
 
 void update_level_meter(uint16_t percentage){
@@ -223,5 +223,5 @@ void update_level_meter(uint16_t percentage){
   digitalWrite(latchPin, LOW); 
   shiftOut(dataPin, clockPin, LSBFIRST, leds);
   digitalWrite(latchPin, HIGH);
-  delay(500);
+  //delay(500);
 }

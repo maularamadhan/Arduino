@@ -11,8 +11,8 @@ uint8_t mac[6] = {0x18,0xfe,0x34,0xa6,0x54,0x22};
 
 // Enter the IP address of the server you're connecting to:
 
-//#define ServerName  "128.199.208.149"
-#define ServerName  "192.168.130.111"
+#define ServerName  "128.199.208.149"
+//#define ServerName  "192.168.130.111"
 #define ServerPort  (9123)
 
 // Networking logical
@@ -208,7 +208,7 @@ String mac2str (uint8_t mac[6])
 char* eth_get_hmac(void)
 {
    String str_unique_id;
-   str_unique_id = "HA-opr-wifi-" + mac2str(mac);
+   str_unique_id = "HA-opr-eth-" + mac2str(mac);
    char* unique_id;
    unique_id = strdup(str_unique_id.c_str());
    unsigned char* hash = MD5::make_hash(unique_id);
@@ -230,7 +230,7 @@ bool eth_send_auth (void) {
    data["mode"] = "opr";
    data["uid"] = mac2str(mac);
    data["hmac"] = hmac_eth;
-   data["via"] = "wifi";
+   data["via"] = "eth";
    ///////////////////////////////////////////////
    Serial.println(F("auth sent!"));
 

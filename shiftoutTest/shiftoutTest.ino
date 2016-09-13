@@ -1,4 +1,4 @@
-#define NUMBER_OF_SHIFT_REG   2
+#define NUMBER_OF_SHIFT_REG   5
 
 //HARDWARE CONNECTIONS
 //Pin connected to OE of 74HC595
@@ -42,12 +42,12 @@ void loop() {
     y = 0;
   }
 
-  //write_shift_regs0(DRIVER_ARRAYS);
-  //delay(2000);
-  //write_shift_regs1(DRIVER_ARRAYS);
-  //delay(2000);
-  running_relay(DRIVER_ARRAYS); // Write the shift registers and change Drivers State
-  delay(1000);
+  write_shift_regs0(DRIVER_ARRAYS);
+  delay(2000);
+  write_shift_regs1(DRIVER_ARRAYS);
+  delay(2000);
+  //running_relay(DRIVER_ARRAYS); // Write the shift registers and change Drivers State
+  //delay(1000);
   x++;
 } 
 

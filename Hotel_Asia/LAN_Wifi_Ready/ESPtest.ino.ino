@@ -89,13 +89,13 @@ bool auth_via_wifi(void)
  }
  if (!ConnecttoServer())
  {
-  //Serial.println("--> tidak masuk ConnecttoServer");
+  Serial.println("--> tidak masuk ConnecttoServer");
   return false;
  }
  recvFromServer(buffer);
  if (!parse_n_check("cmd", "auth"))
  {
-  //Serial.println("--> tidak masuk recvFromServer");
+  Serial.println("--> tidak masuk recvFromServer");
   return false;
  }
 
@@ -645,6 +645,7 @@ void esp_loop(void){
   check_timeout_disconnection();
   if (!init_is_done)
   {
+    disable_outputs;
     //Serial.println("--> masuk init_is_done=false");
     wifi.releaseTCP();
     if(auth_via_wifi()){

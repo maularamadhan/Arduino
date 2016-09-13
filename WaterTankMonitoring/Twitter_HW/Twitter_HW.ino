@@ -23,18 +23,18 @@ const char* const level PROGMEM = "Lvl: ";
 // Sensor Constant
 const uint16_t LVMAX PROGMEM = 310;
 const uint16_t LVMIN PROGMEM = 160;
-const int analogPin PROGMEM = 5;
+const int analogPin = 5;
 
 // Shift-registers Offline-Level Meter
 //Pin connected to ST_CP of 74HC595
-const int latchPin PROGMEM = 5;
+const int latchPin = 5;
 //Pin connected to SH_CP of 74HC595
-const int clockPin PROGMEM = 4;
+const int clockPin = 4;
 ////Pin connected to DS of 74HC595 
-const int dataPin PROGMEM = 6;
+const int dataPin = 6;
 
 // auto-reset
-const int selfreset PROGMEM = 8;
+const int selfreset = 8;
 
 // ethernet interface mac address, must be unique on the LAN
 byte mymac[] = { 0x74,0x69,0x69,0x2D,0x30,0xEE };
@@ -47,7 +47,7 @@ byte Ethernet::buffer[600];
 Stash stash;
 
 // ethernet interface ip address
-static byte myip[] = { 192,168,128,203 };
+static byte myip[] = { 192,168,128,166 };
 // gateway ip address
 static byte mygwip[] = { 192,168,128,3 };
 // ethernet interface ip address
@@ -61,9 +61,9 @@ static byte mymaskip[] = { 255,255,252,0 };
 //const long interval = 6000;           // interval at which to blink (milliseconds)
 
 void setup () {
+  SERIAL_OUT_SETUP();
   Serial.begin(57600);
   Serial.println("\n[Twitter Client]");
-  SERIAL_OUT_SETUP();
   eth_init();
   eth_dnslookup();
   update_level_meter(read_sensor());
@@ -131,8 +131,10 @@ void sendToTwitter () {
 void eth_init(void){
   if (ether.begin(sizeof Ethernet::buffer, mymac, 10) == 0) // 10 for Pro Mini, 53 for Mega, 8 for Uno
     Serial.println(F("Failed to access Ethernet controller"));
-  if (!ether.staticSetup(myip, mygwip, mydnsip, mymaskip))
-    Serial.println(F("static setup failed"));
+  /*if (!ether.staticSetup(myip, mygwip, mydnsip, mymaskip))
+    Serial.println(F("static setup failed"));*/
+  if (!ether.dhcpSetup())
+    Serial.println(F("DHCP failed"));
 
   ether.printIp("IP:  ", ether.myip);
   ether.printIp("GW:  ", ether.gwip);  
@@ -163,8 +165,8 @@ void eth_dnslookup(void){
 uint16_t read_sensor(void){
   uint16_t val;
   uint16_t percentage;
-  val = analogRead(analogPin); // READ FROM THE REAL SENSOR
-  //val = random(LVMIN, LVMAX); //FOR TESTING
+  //val = analogRead(analogPin); // READ FROM THE REAL SENSOR
+  val = random(LVMIN, LVMAX); //FOR TESTING
   percentage = map(val, LVMIN, LVMAX, 0, 105);
   if(percentage > 100){
     percentage = 100;
@@ -185,8 +187,8 @@ void SERIAL_OUT_SETUP(void)
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
-  pinMode(selfreset, OUTPUT);
-  digitalWrite(selfreset, HIGH);
+  //pinMode(selfreset, OUTPUT);
+  //digitalWrite(selfreset, HIGH);
 }
 
 void update_level_meter(uint16_t percentage){
@@ -220,7 +222,7 @@ void update_level_meter(uint16_t percentage){
   digitalWrite(latchPin, LOW); 
   shiftOut(dataPin, clockPin, LSBFIRST, leds);
   digitalWrite(latchPin, HIGH);
-  delay(500);
+  //delay(500);
 }
 
 bool eth_reply(void){

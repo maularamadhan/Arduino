@@ -15,8 +15,8 @@ uint8_t current_driver[NMAX_SHIFTREG];
 uint8_t SWITCH_ARRAYS[NMAX_SHIFTREG];
 uint32_t lenceu;
 
-//#define ServerName  "128.199.208.149"
-#define ServerName  "192.168.130.111"
+#define ServerName  "128.199.208.149"
+//#define ServerName  "192.168.130.111"
 #define ServerPort  (9123)
 
 // Self-reset
